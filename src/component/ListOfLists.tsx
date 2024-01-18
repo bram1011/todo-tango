@@ -1,12 +1,12 @@
 'use client'
 
 import SignInPage from './SignInPage'
-import TodoList from '@/entity/TodoList'
 import { Button, CircularProgress, DialogTitle, FormControl, FormLabel, IconButton, Input, Link, Modal, ModalDialog, Stack } from '@mui/joy'
 import AddIcon from '@mui/icons-material/Add'
 import CheckIcon from '@mui/icons-material/Check'
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
+import { type TodoList } from '@prisma/client'
 
 export default function ListOfLists (): React.JSX.Element {
     const { data: session } = useSession()
@@ -21,6 +21,9 @@ export default function ListOfLists (): React.JSX.Element {
                 return
             }
             const response = await fetch(`/api/list?userId=${session?.userId}`)
+            if (response.body == null || response.status !== 200) {
+                return
+            }
             const fetchedLists = await response.json() as TodoList[]
             setLists(fetchedLists)
         }
@@ -34,14 +37,12 @@ export default function ListOfLists (): React.JSX.Element {
     }
 
     async function addList (name: string): Promise<void> {
-        let list = new TodoList()
-        list.name = name
         const response = await fetch('/api/list', {
             method: 'PUT',
-            body: JSON.stringify(list)
+            body: JSON.stringify({ name })
         })
-        list = await response.json() as TodoList
-        setLists([...lists, list])
+        const newList = await response.json() as TodoList
+        setLists([...lists, newList])
     }
 
     return (

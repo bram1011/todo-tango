@@ -2,7 +2,6 @@
 
 import Sheet from '@mui/joy/Sheet'
 import React, { useState, useEffect } from 'react'
-import Todo from '@/entity/Todo'
 import {
     Table,
     Checkbox,
@@ -20,39 +19,41 @@ import AddIcon from '@mui/icons-material/Add'
 import CheckIcon from '@mui/icons-material/Check'
 import { useSession } from 'next-auth/react'
 import SignInPage from './SignInPage'
-import TodoList from '@/entity/TodoList'
+import { type Todo, type TodoList } from '@prisma/client'
 
-export default function TodoListComponent ({ listData }: { listData: any }): React.JSX.Element {
+export default function TodoListComponent ({ listData }: { listData: TodoList }): React.JSX.Element {
     const [todos, setTodos] = useState<Todo[]>([])
     const [modalOpen, setModalOpen] = useState<boolean>(false)
     const [newTaskName, setNewTaskName] = useState<string>('')
     const [newTaskDescription, setNewTaskDescription] = useState<string>('')
     const { data: session } = useSession()
-    const [list, setList] = useState<TodoList>(new TodoList())
+    const [list, setList] = useState<TodoList>(listData)
 
     async function addTodo (name: string, description: string): Promise<void> {
-        const todo = new Todo()
-        todo.name = name
-        todo.description = description
-        todo.completed = false
-        todo.todoList = list
-        const response = await fetch(`/api/todo?todoListId=${listData.listId}`, {
+        const response = await fetch(`/api/todo?todoListId=${listData.id}`, {
             method: 'PUT',
-            body: JSON.stringify(todo)
+            body: JSON.stringify({
+                name,
+                description,
+                completed: false
+            })
         })
-        const data = await response.json() as Todo
-        setTodos([...todos, data])
+        const todo = await response.json() as Todo
+        setTodos([...todos, todo])
     }
 
     useEffect(() => {
         async function fetchTodos (): Promise<void> {
-            const response = await fetch(`/api/todo?todoListId=${listData.listId}`)
-            const todoList = await response.json() as TodoList
-            setList(todoList)
-            setTodos(todoList.todos)
+            const response = await fetch(`/api/list?todoListId=${listData.id}`)
+            if (response.body == null || response.status !== 200) {
+                return
+            }
+            const todoList = await response.json()
+            setList(todoList as TodoList)
+            setTodos(todoList.todos as Todo[])
         }
         void fetchTodos()
-    }, [session, listData.listId])
+    }, [session, listData])
 
     if (session == null) {
         return (
