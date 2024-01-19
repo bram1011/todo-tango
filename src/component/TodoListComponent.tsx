@@ -17,17 +17,14 @@ import {
 } from '@mui/joy'
 import AddIcon from '@mui/icons-material/Add'
 import CheckIcon from '@mui/icons-material/Check'
-import { useSession } from 'next-auth/react'
-import SignInPage from './SignInPage'
-import { type Todo, type TodoList } from '@prisma/client'
+import { type Todo } from '@prisma/client'
+import { type TodoListWithTodos } from '@/types'
 
-export default function TodoListComponent ({ listData }: { listData: TodoList }): React.JSX.Element {
-    const [todos, setTodos] = useState<Todo[]>([])
+export default function TodoListComponent ({ listData }: { listData: TodoListWithTodos }): React.JSX.Element {
+    const [todos, setTodos] = useState<Todo[]>(listData.todos)
     const [modalOpen, setModalOpen] = useState<boolean>(false)
     const [newTaskName, setNewTaskName] = useState<string>('')
     const [newTaskDescription, setNewTaskDescription] = useState<string>('')
-    const { data: session } = useSession()
-    const [list, setList] = useState<TodoList>(listData)
 
     async function addTodo (name: string, description: string): Promise<void> {
         const response = await fetch(`/api/todo?todoListId=${listData.id}`, {
@@ -49,51 +46,46 @@ export default function TodoListComponent ({ listData }: { listData: TodoList })
                 return
             }
             const todoList = await response.json()
-            setList(todoList as TodoList)
             setTodos(todoList.todos as Todo[])
         }
         void fetchTodos()
-    }, [session, listData])
-
-    if (session == null) {
-        return (
-            <SignInPage />
-        )
-    }
+    }, [listData])
 
     return (
         <Sheet variant="outlined" className='w-5/6 mx-auto my-4 py-3 px-2 flex flex-col gap-2 rounded-md shadow-md'>
-            <div>
-                <Table size='lg'>
-                    <thead>
-                        <tr className='align-middle'>
-                            <th className='w-12'><Checkbox className='align-middle' disabled/></th>
-                            <th className='w-1/3 text-left'>Name</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {
-                            todos.length > 0
-                                ? (todos.map((todo) => (
-                                    <tr className='align-middle' key={todo.id}>
-                                        <td><Checkbox className='align-middle' defaultChecked={todo.completed} onChange={
-                                            (e) => {
-                                                todo.completed = e.target.checked
-                                                todos[todos.findIndex((t) => t.id === todo.id)] = todo
-                                                setTodos([...todos])
-                                            }
-                                        } /></td>
-                                        <td><Typography level='title-lg' className={todo.completed ? 'line-through' : ''}>{todo.name}</Typography></td>
-                                        <td><Typography level='body-md' className={todo.completed ? 'line-through' : ''}>{todo.description}</Typography></td>
-                                    </tr>
-                                )))
-                                : (<tr><td colSpan={3}><Typography level='body-md'>No tasks</Typography></td></tr>)
-                        }
-                    </tbody>
-                </Table>
-            </div>
-            <IconButton variant='solid' onClick={() => { setModalOpen(true) }}><AddIcon /></IconButton>
+            <Stack direction='column'>
+                <div>
+                    <Table size='lg'>
+                        <thead>
+                            <tr className='align-middle'>
+                                <th className='w-12'><Checkbox className='align-middle' disabled/></th>
+                                <th className='w-1/3 text-left'>Name</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {
+                                todos.length > 0
+                                    ? (todos.map((todo) => (
+                                        <tr className='align-middle' key={todo.id}>
+                                            <td><Checkbox className='align-middle' defaultChecked={todo.completed} onChange={
+                                                (e) => {
+                                                    todo.completed = e.target.checked
+                                                    todos[todos.findIndex((t) => t.id === todo.id)] = todo
+                                                    setTodos([...todos])
+                                                }
+                                            } /></td>
+                                            <td><Typography level='title-lg' className={todo.completed ? 'line-through' : ''}>{todo.name}</Typography></td>
+                                            <td><Typography level='body-md' className={todo.completed ? 'line-through' : ''}>{todo.description}</Typography></td>
+                                        </tr>
+                                    )))
+                                    : (<tr><td colSpan={3}><Typography level='body-md'>No tasks</Typography></td></tr>)
+                            }
+                        </tbody>
+                    </Table>
+                </div>
+                <IconButton variant='solid' onClick={() => { setModalOpen(true) }}><AddIcon /></IconButton>
+            </Stack>
             <Modal open={modalOpen} onClose={() => { setModalOpen(false) }}>
                 <ModalDialog>
                     <DialogTitle>Add a new task</DialogTitle>

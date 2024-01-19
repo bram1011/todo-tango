@@ -7,6 +7,7 @@ import 'reflect-metadata'
 import { CssVarsProvider } from '@mui/joy/styles'
 import { Sheet } from '@mui/joy'
 import React from 'react'
+import { UserProvider } from '@auth0/nextjs-auth0/client'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,9 +25,11 @@ export default function RootLayout ({
             <body className={inter.className}>
                 <AppRouterCacheProvider>
                     <CssVarsProvider>
-                        <Sheet variant='soft' className='h-screen w-screen flex justify-center align-center'>
-                            {children}
-                        </Sheet>
+                        <UserProvider>
+                            <Sheet variant='soft' className='h-screen w-screen flex justify-center align-center'>
+                                {children}
+                            </Sheet>
+                        </UserProvider>
                     </CssVarsProvider>
                 </AppRouterCacheProvider>
             </body>
