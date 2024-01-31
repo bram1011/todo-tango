@@ -1,7 +1,5 @@
 import { type NextRequest } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import prisma from '@/util/prisma'
 
 export async function GET (req: NextRequest): Promise<Response> {
     const todoId = req.nextUrl.searchParams.get('todoId')
@@ -43,6 +41,23 @@ export async function PUT (req: NextRequest): Promise<Response> {
             }
         },
         include: { todoList: true }
+    })
+    return Response.json(todoRecord)
+}
+
+export async function POST (req: NextRequest): Promise<Response> {
+    const todo = await req.json()
+    const todoId = req.nextUrl.searchParams.get('todoId')
+    if (todoId == null && todo.id == null) {
+        return Response.json('No todo given', { status: 400 })
+    }
+    const todoRecord = await prisma.todo.update({
+        where: { id: todoId ?? todo.id },
+        data: {
+            name: todo.name,
+            description: todo.description,
+            completed: todo.completed
+        }
     })
     return Response.json(todoRecord)
 }

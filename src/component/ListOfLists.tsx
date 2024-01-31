@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, CircularProgress, DialogTitle, FormControl, FormLabel, IconButton, Input, Link, Modal, ModalDialog, Stack } from '@mui/joy'
+import { Button, CircularProgress, DialogTitle, FormControl, FormLabel, IconButton, Input, Modal, ModalDialog, Stack } from '@mui/joy'
 import AddIcon from '@mui/icons-material/Add'
 import CheckIcon from '@mui/icons-material/Check'
 import { useEffect, useState } from 'react'
@@ -34,13 +34,11 @@ export default function ListOfLists (): React.JSX.Element {
     }
 
     return (
-        <div>
-            <Stack>
-                {lists.length > 0 && lists.map((list) => (
-                    <Link key={list.id} href={`/lists/${list.id}`}><Button>{list.name}</Button></Link>
-                ))}
-                <IconButton onClick={() => { setModalOpen(true) }}><AddIcon /></IconButton>
-            </Stack>
+        <Stack alignSelf='center' maxHeight='full' spacing={4} justifyItems='stretch' justifySelf='center' useFlexGap>
+            {lists.length > 0 && lists.map((list) => (
+                <Button size='md' color='neutral' component='a' key={list.id} href={`/lists/${list.id}`}>{list.name}</Button>
+            ))}
+            <Button sx={{ marginTop: '16rem' }} size='lg' color='success' startDecorator={<AddIcon />} aria-label='Create a To-do list' onClick={() => { setModalOpen(true) }}>Add a new List</Button>
             <Modal open={modalOpen}>
                 <ModalDialog layout="center">
                     <DialogTitle>Make a New To-Do List</DialogTitle>
@@ -71,7 +69,7 @@ export default function ListOfLists (): React.JSX.Element {
                     </form>
                 </ModalDialog>
             </Modal>
-        </div>
+        </Stack>
 
     )
 }
