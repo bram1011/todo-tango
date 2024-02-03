@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+require('next-ws/server').verifyPatch();
 const FilterWarningsPlugin = require('webpack-filter-warnings-plugin');
 const nextConfig = {
     experimental: {

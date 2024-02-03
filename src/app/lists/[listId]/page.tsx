@@ -4,6 +4,7 @@ import TodoListComponent from '@/component/TodoListComponent'
 import { type TodoListWithTodos } from '@/types'
 import { CircularProgress } from '@mui/joy'
 import { useEffect, useState } from 'react'
+import { WebSocketProvider } from 'next-ws/client'
 
 export default function ListPage ({ params }: { params: { listId: string } }): React.JSX.Element {
     const [loading, setLoading] = useState(true)
@@ -38,6 +39,8 @@ export default function ListPage ({ params }: { params: { listId: string } }): R
     }
 
     return (
-        <TodoListComponent listData={listData} />
+        <WebSocketProvider url={process.env.NEXT_PUBLIC_WS_URL ?? ''}>
+            <TodoListComponent listData={listData} />
+        </WebSocketProvider>
     )
 }

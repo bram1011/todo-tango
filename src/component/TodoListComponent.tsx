@@ -1,7 +1,7 @@
 'use client'
 
 import Sheet from '@mui/joy/Sheet'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useReducer } from 'react'
 import {
     Table,
     Checkbox,
@@ -20,54 +20,79 @@ import AddIcon from '@mui/icons-material/Add'
 import CheckIcon from '@mui/icons-material/Check'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { type Todo } from '@prisma/client'
-import { type TodoListWithTodos } from '@/types'
+import { type TodoAction, type TodoListWithTodos } from '@/types'
+import { useWebSocket } from 'next-ws/client'
+import { v4 as uuidv4 } from 'uuid'
 
 export default function TodoListComponent ({ listData }: { listData: TodoListWithTodos }): React.JSX.Element {
-    const [todos, setTodos] = useState<Todo[]>(listData.todos)
+    const [todos, dispatch] = useReducer(todosReducer, listData.todos)
     const [modalOpen, setModalOpen] = useState<boolean>(false)
     const [newTaskName, setNewTaskName] = useState<string>('')
     const [newTaskDescription, setNewTaskDescription] = useState<string>('')
+    const ws = useWebSocket()
 
     async function addTodo (name: string, description: string): Promise<void> {
-        const response = await fetch(`/api/todo?todoListId=${listData.id}`, {
-            method: 'PUT',
-            body: JSON.stringify({
-                name,
-                description,
-                completed: false
-            })
-        })
-        const todo = await response.json() as Todo
-        setTodos([...todos, todo])
+        const tempId = uuidv4()
+        const newTodo: Todo = { id: tempId, name, description, todoListId: listData.id, completed: false }
+        dispatch({ type: 'ADD_TODO', todo: newTodo }) // Optimistic update
+        ws?.send(JSON.stringify({ action: 'addTodo', todo: newTodo }))
     }
 
+    function todosReducer (state: Todo[], action: TodoAction): Todo[] {
+        switch (action.type) {
+            case 'ADD_TODO':
+                if ('tempId' in action) {
+                    return state.map(todo => todo.id === action.tempId ? action.todo : todo)
+                }
+                return [...state, action.todo]
+            case 'UPDATE_TODO':
+                return state.map(todo => todo.id === action.todo.id ? action.todo : todo)
+            case 'SET_TODOS':
+                return action.todos
+            default:
+                return state
+        }
+    }
+
+    const onMessage = useCallback((event: MessageEvent) => {
+        const data = event.data
+        if (typeof data === 'string') {
+            const message = JSON.parse(data) as TodoAction
+            dispatch(message)
+        } else if (data instanceof Blob) {
+            void event.data.text().then((text: string) => {
+                const message = JSON.parse(text) as TodoAction
+                dispatch(message)
+            })
+        }
+    }, [])
+
     async function updateTodo (todo: Todo): Promise<void> {
-        const response = await fetch('/api/todo', {
-            method: 'POST',
-            body: JSON.stringify(todo)
-        })
-        const updatedTodo = await response.json() as Todo
-        const updatedTodoList = todos
-        updatedTodoList[updatedTodoList.findIndex((t) => t.id === updatedTodo.id)] = updatedTodo
-        setTodos([...updatedTodoList])
+        dispatch({ type: 'UPDATE_TODO', todo }) // Optimistic update
+        ws?.send(JSON.stringify({ action: 'editTodo', todo }))
+    }
+
+    async function fetchTodos (todoListId: string): Promise<void> {
+        try {
+            const response = await fetch(`/api/list?todoListId=${todoListId}`)
+            if (!response.ok) throw new Error('Failed to fetch todos')
+            const todoList = await response.json()
+            dispatch({ type: 'SET_TODOS', todos: todoList.todos })
+        } catch (error) {
+            console.error('Error fetching todos:', error)
+        }
     }
 
     useEffect(() => {
-        async function fetchTodos (): Promise<void> {
-            const response = await fetch(`/api/list?todoListId=${listData.id}`)
-            if (response.body == null || response.status !== 200) {
-                return
-            }
-            const todoList = await response.json()
-            setTodos(todoList.todos as Todo[])
-        }
-        void fetchTodos()
-    }, [listData])
+        ws?.addEventListener('message', onMessage)
+        void fetchTodos(listData.id)
+        return () => ws?.removeEventListener('message', onMessage)
+    }, [ws, onMessage, listData.id])
 
     return (
         <Sheet variant='plain'>
             <Stack direction='column' spacing={5}>
-                <Button component='a' href='/lists' startDecorator={<ArrowBackIcon />}>Back to lists</Button>
+                <Button component='a' href='/' startDecorator={<ArrowBackIcon />}>Back to lists</Button>
                 <Table size='lg' sx={{ '.complete-true': { backgroundColor: (theme) => theme.palette.success.plainActiveBg } }}>
                     <thead>
                         <tr>

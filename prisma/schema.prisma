@@ -8,19 +8,19 @@ datasource db {
 }
 
 model TodoList {
-  id          String @id @default(cuid())
+  id          String   @id @default(uuid())
   name        String
   description String?
   todos       Todo[]
   users       String[]
+  updatedAt   DateTime @default(now()) @updatedAt
 }
 
 model Todo {
-  id          String    @id @default(cuid())
+  id          String   @id @default(uuid())
   name        String
   description String?
   completed   Boolean
   todoListId  String
-  todoList    TodoList  @relation(fields: [todoListId], references: [id])
+  todoList    TodoList @relation(fields: [todoListId], references: [id], onDelete: Cascade)
 }
-
