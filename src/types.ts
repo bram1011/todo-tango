@@ -15,3 +15,4 @@ export type TodoAction =
   | { type: 'ADD_TODO', todo: Todo, tempId: string }
   | { type: 'UPDATE_TODO', todo: Todo }
   | { type: 'SET_TODOS', todos: Todo[] }
+  | { type: 'DELETE_TODO', todo: Todo }

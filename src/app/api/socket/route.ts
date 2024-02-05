@@ -43,6 +43,18 @@ export function SOCKET (
                 notifyClients(server, JSON.stringify({ type: 'UPDATE_TODO', todo: todoRecord } satisfies TodoAction))
             }).catch((error) => { console.error(error) })
         }
+        if (messageJson.action === 'deleteTodo') {
+            const todoId = messageJson.todoId as string
+            deleteTodo(todoId).then((todoRecord) => {
+                notifyClients(server, JSON.stringify({ type: 'DELETE_TODO', todo: todoRecord } satisfies TodoAction))
+            }).catch((error) => { console.error(error) })
+        }
+        if (messageJson.action === 'orderTodos') {
+            const todos = messageJson.todos as Todo[]
+            updateOrder(todos).then(() => {
+                notifyClients(server, JSON.stringify({ type: 'SET_TODOS', todos } satisfies TodoAction))
+            }).catch((error) => { console.error(error) })
+        }
     })
 }
 
@@ -52,6 +64,15 @@ function notifyClients (server: WebSocketServer, message: string): void {
     })
 }
 
+async function updateOrder (todos: Todo[]): Promise<void> {
+    for (const todo of todos) {
+        await prisma.todo.update({
+            where: { id: todo.id },
+            data: { order: todo.order }
+        })
+    }
+}
+
 async function editTodo (todo: Todo): Promise<Todo> {
     const todoRecord = await prisma.todo.update({
         where: { id: todo.id },
@@ -59,10 +80,18 @@ async function editTodo (todo: Todo): Promise<Todo> {
             name: todo.name,
             description: todo.description,
             completed: todo.completed,
+            order: todo.order,
             todoList: {
                 connect: { id: todo.todoListId }
             }
         }
+    })
+    return todoRecord
+}
+
+async function deleteTodo (todoId: string): Promise<Todo> {
+    const todoRecord = await prisma.todo.delete({
+        where: { id: todoId }
     })
     return todoRecord
 }
@@ -89,6 +118,7 @@ async function addTodo (todo: Todo): Promise<Todo> {
             name: todo.name,
             description: todo.description,
             completed: false,
+            order: todo.order,
             todoList: {
                 connect: { id: todo.todoListId }
             }

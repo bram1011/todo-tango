@@ -1,6 +1,6 @@
 'use client'
 
-import TodoListComponent from '@/component/TodoListComponent'
+import TodoList from '@/component/TodoList'
 import { type TodoListWithTodos } from '@/types'
 import { CircularProgress } from '@mui/joy'
 import { useEffect, useState } from 'react'
@@ -40,7 +40,7 @@ export default function ListPage ({ params }: { params: { listId: string } }): R
 
     return (
         <WebSocketProvider url={process.env.NEXT_PUBLIC_WS_URL ?? ''}>
-            <TodoListComponent listData={listData} />
+            <TodoList listData={listData} />
         </WebSocketProvider>
     )
 }

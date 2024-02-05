@@ -22,5 +22,6 @@ model Todo {
   description String?
   completed   Boolean
   todoListId  String
+  order       Int      @default(0)
   todoList    TodoList @relation(fields: [todoListId], references: [id], onDelete: Cascade)
 }
