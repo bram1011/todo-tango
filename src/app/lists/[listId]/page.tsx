@@ -2,7 +2,7 @@
 
 import TodoList from '@/component/TodoList'
 import { type TodoListWithTodos } from '@/types'
-import { CircularProgress } from '@mui/joy'
+import { Skeleton } from '@mui/joy'
 import { useEffect, useState } from 'react'
 import { WebSocketProvider } from 'next-ws/client'
 
@@ -26,21 +26,11 @@ export default function ListPage ({ params }: { params: { listId: string } }): R
         void fetchList()
     }, [params.listId])
 
-    if (loading) {
-        return (
-            <CircularProgress />
-        )
-    }
-
-    if (listData == null) {
-        return (
-            <div>Could not find list</div>
-        )
-    }
-
     return (
         <WebSocketProvider url={process.env.NEXT_PUBLIC_WS_URL ?? ''}>
-            <TodoList listData={listData} />
+            <Skeleton variant='rectangular' loading={loading} width='90%' height='20%' sx={{ alignSelf: 'center' }}>
+                {(listData != null) && <TodoList listData={listData} />}
+            </Skeleton>
         </WebSocketProvider>
     )
 }

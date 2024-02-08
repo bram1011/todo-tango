@@ -114,6 +114,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
     const handleOnDragEnd = (result: any): void => {
         const items = Array.from(todos)
         const [reorderedItem] = items.splice(result.source.index as number, 1)
+        reorderedItem.order = result.destination.index
         items.splice(result.destination.index as number, 0, reorderedItem)
 
         // Update state with the new todos order
@@ -129,11 +130,20 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
     }, [ws, onMessage, listData.id])
 
     return (
-        <Sheet variant='plain'>
+        <Sheet variant='plain' sx={{ width: '100%', alignSelf: 'center' }} invertedColors>
             <Stack direction='column' spacing={5}>
                 <Button component='a' href='/' startDecorator={<ArrowBackIcon />}>Back to lists</Button>
                 <DragDropContext onDragEnd={handleOnDragEnd}>
-                    <Table size='lg' sx={{ '.complete-true': { backgroundColor: (theme) => theme.palette.success.plainActiveBg } }}>
+                    <Table size='lg' sx={{
+                        '.complete-true': { backgroundColor: (theme) => theme.palette.success.plainActiveBg, textDecoration: 'line-through' },
+                        '& thead th:nth-child(1)': { width: '10%' },
+                        '& thead th:nth-child(2)': { width: '30%' },
+                        '& thead th:nth-child(3)': { width: '40%', display: { xs: 'none', md: 'table-cell' } },
+                        '& tbody td:nth-child(3)': { display: { xs: 'none', md: 'table-cell' } },
+                        '& thead th:nth-child(4)': { width: '20%', alignContent: 'start', justifyContent: 'start' },
+                        overflowX: 'auto'
+                    }}>
+                        <caption>{listData.name}</caption>
                         <thead>
                             <tr>
                                 <th><Checkbox className='align-middle' disabled/></th>
@@ -149,7 +159,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
                                     {
                                         todos.length > 0
                                             ? (
-                                                todos.map((todo, index) => (
+                                                todos.sort((a, b) => a.order - b.order).map((todo, index) => (
                                                     <Draggable key={todo.id} draggableId={todo.id} index={index} isDragDisabled={editingTodo !== null}>
                                                         {(provided: any) => (
                                                             <tr ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className={`complete-${todo.completed}`}>
@@ -197,7 +207,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
                                                                         )}
                                                                 </td>
                                                                 <td>
-                                                                    <Stack direction='row' spacing={2}>
+                                                                    <Stack direction={{ sm: 'column', xs: 'column', md: 'row' }} spacing={2}>
                                                                         {editingTodo?.id === todo.id
                                                                             ? (
                                                                                 <IconButton variant='plain' onClick={() => { void updateTodo(editingTodo) }}><CheckIcon /></IconButton>
@@ -205,7 +215,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
                                                                             : (
                                                                                 <IconButton variant='plain' onClick={() => { setEditingTodo(todo) }}><EditIcon /></IconButton>
                                                                             )}
-                                                                        <IconButton variant='plain' onClick={() => { void deleteTodo(todo) }}><DeleteIcon /></IconButton>
+                                                                        <IconButton variant='plain' color='danger' onClick={() => { void deleteTodo(todo) }}><DeleteIcon /></IconButton>
                                                                     </Stack>
                                                                 </td>
                                                             </tr>

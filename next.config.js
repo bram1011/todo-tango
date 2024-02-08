@@ -2,7 +2,7 @@
 require('next-ws/server').verifyPatch();
 const FilterWarningsPlugin = require('webpack-filter-warnings-plugin');
 const nextConfig = {
-    reactStrictMode: false,
+    reactStrictMode: true,
     experimental: {
         serverComponentsExternalPackages: ["typeorm"],
         instrumentationHook : true,

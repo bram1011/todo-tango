@@ -11,7 +11,7 @@ export default function Sidebar (): React.JSX.Element {
     return (
         <Box sx={{ display: 'flex' }}>
             <IconButton variant="outlined" color="neutral" onClick={() => { setOpen(true) }}><MenuIcon /></IconButton>
-            <Drawer open={open} onClose={() => { setOpen(false) }}>
+            <Drawer open={open} onClose={() => { setOpen(false) }} size='md'>
                 <Sheet variant='soft' className='h-screen'>
                     <ListOfLists />
                 </Sheet>
