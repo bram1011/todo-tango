@@ -9,10 +9,10 @@ export default function LogOutButton (): React.JSX.Element {
     const { user } = useUser()
     if (user == null) {
         return (
-            <Button size='lg' component='a' href='/api/auth/login' startDecorator={<LoginIcon />}>Log In</Button>
+            <Button color='success' size='lg' component='a' href='/api/auth/login' startDecorator={<LoginIcon />}>Log In</Button>
         )
     }
     return (
-        <Button size='lg' component='a' href='/api/auth/logout' startDecorator={<LogOutIcon />}>Log Out</Button>
+        <Button color='danger' size='lg' component='a' href='/api/auth/logout' startDecorator={<LogOutIcon />}>Log Out</Button>
     )
 }

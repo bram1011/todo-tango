@@ -14,6 +14,7 @@ import DarkModeToggle from '@/component/DarkModeToggle'
 import Image from 'next/image'
 import logo from './todo-tango.png'
 import theme from '@/util/theme'
+import favicon from '@/favicon.ico'
 
 export const metadata: Metadata = {
     title: 'Todo Tango'
@@ -26,21 +27,23 @@ export default function RootLayout ({
 }): JSX.Element {
     return (
         <html lang="en">
-            <link rel="icon" href="/favicon.ico" sizes="any" />
+            <head>
+                <link rel="icon" href={favicon.src} />
+            </head>
             <body>
                 <AppRouterCacheProvider>
                     <CssVarsProvider theme={theme}>
                         <UserProvider>
-                            <Sheet variant='soft' className='h-screen w-screen flex justify-center align-center'>
-                                <Stack direction='column' className='w-full'>
-                                    <Sheet variant='plain' className='mb-32'>
+                            <Sheet variant='soft' sx={{ width: '100%', height: '100%', overflow: 'auto' }}>
+                                <Stack direction='column' sx={{ width: '100%', height: '100%' }}>
+                                    <Sheet variant='plain' sx={{ marginBottom: '5%' }}>
                                         <Stack direction={{ md: 'row', sm: 'column', xs: 'column' }} className='p-4' justifyContent='space-between' alignItems='center' spacing={2}>
                                             <Stack direction='row' spacing={2}>
                                                 <Sidebar />
                                                 <DarkModeToggle />
                                             </Stack>
-                                            <Stack direction='row' spacing={2} display={{ sm: 'none', md: 'flex', xs: 'none' }}>
-                                                <Image src={logo} alt='Todo Tango' width={50} />
+                                            <Stack direction='row' alignItems='center' spacing={2} display={{ sm: 'none', md: 'flex', xs: 'none' }}>
+                                                <Image src={logo} alt='Todo Tango' width={70} />
                                                 <Typography level='h1'>Todo Tango</Typography>
                                             </Stack>
                                             <LogOutButton />

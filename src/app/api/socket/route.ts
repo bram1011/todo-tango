@@ -2,7 +2,7 @@ import { type Todo } from '@prisma/client'
 import { type IncomingMessage } from 'http'
 import { type WebSocket, type WebSocketServer } from 'ws'
 import prisma from '@/util/prisma'
-import { type TodoAction } from '@/types'
+import { type SocketAction, type TodoAction, ActionType } from '@/types'
 
 export function SOCKET (
     client: WebSocket,
@@ -11,55 +11,58 @@ export function SOCKET (
 ): void {
     client.on('message', (message) => {
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        const messageJson = JSON.parse(message.toString())
-        if (messageJson.action == null) {
+        const socketAction = JSON.parse(message.toString()) as SocketAction
+        console.log(socketAction)
+        if (socketAction.type == null) {
             client.send('Invalid action')
             return
         }
-        if (messageJson.action === 'ping') {
-            client.send('pong')
+        if (socketAction.user != null) {
+            notifyClients(server, JSON.stringify({ type: ActionType.NEW_USER, user: socketAction.user } satisfies TodoAction))
         }
-        if (messageJson.action === 'addTodo') {
-            const todo = messageJson.todo as Todo
-            addTodo(todo).then((todoRecord) => {
-                notifyClients(server, JSON.stringify({ todo: todoRecord, tempId: todo.id, type: 'ADD_TODO' } satisfies TodoAction))
-            }).catch((error) => { console.error(error) })
-        }
-        if (messageJson.action === 'completeTodo') {
-            const todoId = messageJson.todoId as string
-            completeTodo(todoId).then((todoRecord) => {
-                notifyClients(server, JSON.stringify({ type: 'UPDATE_TODO', todo: todoRecord } satisfies TodoAction))
-            }).catch((error) => { console.error(error) })
-        }
-        if (messageJson.action === 'uncompleteTodo') {
-            const todoId = messageJson.todoId as string
-            uncompleteTodo(todoId).then((todoRecord) => {
-                notifyClients(server, JSON.stringify({ type: 'UPDATE_TODO', todo: todoRecord } satisfies TodoAction))
-            }).catch((error) => { console.error(error) })
-        }
-        if (messageJson.action === 'editTodo') {
-            const todo = messageJson.todo as Todo
-            editTodo(todo).then((todoRecord) => {
-                notifyClients(server, JSON.stringify({ type: 'UPDATE_TODO', todo: todoRecord } satisfies TodoAction))
-            }).catch((error) => { console.error(error) })
-        }
-        if (messageJson.action === 'deleteTodo') {
-            const todoId = messageJson.todoId as string
-            deleteTodo(todoId).then((todoRecord) => {
-                notifyClients(server, JSON.stringify({ type: 'DELETE_TODO', todo: todoRecord } satisfies TodoAction))
-            }).catch((error) => { console.error(error) })
-        }
-        if (messageJson.action === 'orderTodos') {
-            const todos = messageJson.todos as Todo[]
-            updateOrder(todos).then(() => {
-                notifyClients(server, JSON.stringify({ type: 'SET_TODOS', todos } satisfies TodoAction))
-            }).catch((error) => { console.error(error) })
+        switch (socketAction.type) {
+            case ActionType.ADD_TODO:
+                if (socketAction.todo == null) break
+                addTodo(socketAction.todo).then((todoRecord) => {
+                    notifyClients(server, JSON.stringify({ todo: todoRecord, tempId: socketAction.todo?.id, type: ActionType.ADD_TODO } satisfies TodoAction))
+                }).catch((error) => { console.error(error) })
+                break
+            case ActionType.ORDER_TODOS:
+                if (socketAction.todos == null) break
+                updateOrder(socketAction.todos).then(() => {
+                    notifyClients(server, JSON.stringify({ type: ActionType.SET_TODOS, todos: socketAction.todos } satisfies TodoAction))
+                }).catch((error) => { console.error(error) })
+                break
+            case ActionType.UPDATE_TODO:
+            case ActionType.EDIT_TODO:
+                if (socketAction.todo == null) break
+                editTodo(socketAction.todo).then((todoRecord) => {
+                    notifyClients(server, JSON.stringify({ type: ActionType.EDIT_TODO, todo: todoRecord } satisfies TodoAction))
+                }).catch((error) => { console.error(error) })
+                break
+            case ActionType.DELETE_TODO:
+                if (socketAction.todoId == null) break
+                deleteTodo(socketAction.todoId).then((todoRecord) => {
+                    notifyClients(server, JSON.stringify({ type: ActionType.DELETE_TODO, todo: todoRecord } satisfies TodoAction))
+                }).catch((error) => { console.error(error) })
+                break
+            case ActionType.NEW_USER:
+                if (socketAction.user == null) break
+                notifyClients(server, JSON.stringify({ type: ActionType.NEW_USER, user: socketAction.user } satisfies TodoAction))
+                break
+            case ActionType.REMOVE_USER:
+                if (socketAction.email == null) break
+                notifyClients(server, JSON.stringify({ type: ActionType.REMOVE_USER, email: socketAction.email } satisfies TodoAction))
+                break
+            default:
+                client.send('Invalid action')
         }
     })
 }
 
 function notifyClients (server: WebSocketServer, message: string): void {
     server.clients.forEach((client) => {
+        console.log(message)
         client.send(message)
     })
 }
@@ -92,22 +95,6 @@ async function editTodo (todo: Todo): Promise<Todo> {
 async function deleteTodo (todoId: string): Promise<Todo> {
     const todoRecord = await prisma.todo.delete({
         where: { id: todoId }
-    })
-    return todoRecord
-}
-
-async function completeTodo (todoId: string): Promise<Todo> {
-    const todoRecord = await prisma.todo.update({
-        where: { id: todoId },
-        data: { completed: true }
-    })
-    return todoRecord
-}
-
-async function uncompleteTodo (todoId: string): Promise<Todo> {
-    const todoRecord = await prisma.todo.update({
-        where: { id: todoId },
-        data: { completed: false }
     })
     return todoRecord
 }

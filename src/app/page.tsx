@@ -3,6 +3,6 @@ import ListOfLists from '@/component/ListOfLists'
 
 export default function Home (): React.JSX.Element {
     return (
-        <ListOfLists />
+        <ListOfLists enableControls={true} />
     )
 }

@@ -1,6 +1,5 @@
 'use client'
 
-import Sheet from '@mui/joy/Sheet'
 import React, { useState, useEffect, useCallback, useReducer } from 'react'
 import {
     Table,
@@ -9,37 +8,76 @@ import {
     IconButton,
     Input,
     Stack,
-    Button
+    Button,
+    AvatarGroup,
+    Avatar,
+    Tooltip,
+    Card
 } from '@mui/joy'
 import AddIcon from '@mui/icons-material/Add'
 import CheckIcon from '@mui/icons-material/Check'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import { type Todo } from '@prisma/client'
-import { type TodoAction, type TodoListWithTodos } from '@/types'
+import { type SocketAction, type ActiveUser, type TodoAction, type TodoListWithTodos, ActionType } from '@/types'
 import { useWebSocket } from 'next-ws/client'
 import { v4 as uuidv4 } from 'uuid'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import { useUser } from '@auth0/nextjs-auth0/client'
 
 export default function TodoList ({ listData }: { listData: TodoListWithTodos }): React.JSX.Element {
-    const [todos, dispatch] = useReducer(todosReducer, listData.todos)
+    const [todos, dispatchTodo] = useReducer(todosReducer, listData.todos)
+    const [users, dispatchUser] = useReducer(userReducer, [])
     const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
+    const [showDescription, setShowDescription] = useState<boolean>(true)
+    const [avatarSurplus, setAvatarSurplus] = useState<number>(0)
     const ws = useWebSocket()
+    const { user } = useUser()
+    const MAX_AVATARS = 5
 
     function todosReducer (state: Todo[], action: TodoAction): Todo[] {
+        if (action.todo == null) return state
         switch (action.type) {
             case 'ADD_TODO':
-                if ('tempId' in action) {
-                    return state.map(todo => todo.id === action.tempId ? action.todo : todo)
+                if (action.tempId != null) {
+                    return state.map(todo => todo.id === action.tempId ? action.todo : todo) as Todo[]
                 }
                 return [...state, action.todo]
             case 'UPDATE_TODO':
-                return state.map(todo => todo.id === action.todo.id ? action.todo : todo)
+                return state.map(todo => todo.id === action.todo?.id ? action.todo : todo)
             case 'SET_TODOS':
+                if (action.todos == null) return state
                 return action.todos
             case 'DELETE_TODO':
-                return state.filter(todo => todo.id !== action.todo.id)
+                return state.filter(todo => todo.id !== action.todo?.id)
+            default:
+                return state
+        }
+    }
+
+    const sendSocketAction = useCallback((action: SocketAction): void => {
+        if (user != null) {
+            action.user = { name: user.name ?? '', email: user.email ?? '', picture: user.picture ?? null }
+        }
+        ws?.send(JSON.stringify(action))
+    }, [ws, user])
+
+    function userReducer (state: ActiveUser[], action: TodoAction): ActiveUser[] {
+        const users = state
+        switch (action.type) {
+            case 'NEW_USER':
+                if (action.user == null) return state
+                if (users.length > 0 && users.some(user => user.email === action.user?.email)) return state
+                return [...users, action.user]
+            case 'SET_USERS':
+                if (action.users == null) return state
+                return action.users
+            case 'REMOVE_USER':
+                if (action.user == null) return state
+                return users.filter(user => user.email !== action.user?.email)
             default:
                 return state
         }
@@ -49,28 +87,32 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
         const data = event.data
         if (typeof data === 'string') {
             const message = JSON.parse(data) as TodoAction
-            dispatch(message)
+            if (message.type.includes('USER')) {
+                dispatchUser(message)
+            } else {
+                dispatchTodo(message)
+            }
         } else if (data instanceof Blob) {
             void event.data.text().then((text: string) => {
                 const message = JSON.parse(text) as TodoAction
-                dispatch(message)
+                dispatchTodo(message)
             })
         }
     }, [])
 
     async function updateTodo (todo: Todo): Promise<void> {
-        dispatch({ type: 'UPDATE_TODO', todo }) // Optimistic update
+        dispatchTodo({ type: ActionType.UPDATE_TODO, todo }) // Optimistic update
         if (editingTodo?.id === todo.id) {
             setEditingTodo(null)
-            ws?.send(JSON.stringify({ action: 'addTodo', todo }))
+            sendSocketAction({ type: ActionType.EDIT_TODO, todo })
         } else {
-            ws?.send(JSON.stringify({ action: 'editTodo', todo }))
+            sendSocketAction({ type: ActionType.EDIT_TODO, todo })
         }
     }
 
     async function deleteTodo (todo: Todo): Promise<void> {
-        dispatch({ type: 'DELETE_TODO', todo }) // Optimistic update
-        ws?.send(JSON.stringify({ action: 'deleteTodo', todoId: todo.id }))
+        dispatchTodo({ type: ActionType.DELETE_TODO, todo }) // Optimistic update
+        sendSocketAction({ type: ActionType.DELETE_TODO, todoId: todo.id })
     }
 
     async function fetchTodos (todoListId: string): Promise<void> {
@@ -78,9 +120,17 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
             const response = await fetch(`/api/list?todoListId=${todoListId}`)
             if (!response.ok) throw new Error('Failed to fetch todos')
             const todoList = await response.json()
-            dispatch({ type: 'SET_TODOS', todos: todoList.todos })
+            dispatchTodo({ type: ActionType.SET_TODOS, todos: todoList.todos })
         } catch (error) {
             console.error('Error fetching todos:', error)
+        }
+    }
+
+    async function deleteDoneTodos (): Promise<void> {
+        const doneTodos = todos.filter((todo) => todo.completed)
+        for (const todo of doneTodos) {
+            dispatchTodo({ type: ActionType.DELETE_TODO, todo }) // Optimistic update
+            sendSocketAction({ type: ActionType.DELETE_TODO, todoId: todo.id })
         }
     }
 
@@ -114,36 +164,88 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
     const handleOnDragEnd = (result: any): void => {
         const items = Array.from(todos)
         const [reorderedItem] = items.splice(result.source.index as number, 1)
-        reorderedItem.order = result.destination.index
         items.splice(result.destination.index as number, 0, reorderedItem)
 
-        // Update state with the new todos order
-        dispatch({ type: 'SET_TODOS', todos: items })
+        for (let i = 0; i < items.length; i++) {
+            items[i].order = i
+        }
 
-        ws?.send(JSON.stringify({ action: 'orderTodos', todos: items }))
+        // Update state with the new todos order
+        dispatchTodo({ type: ActionType.SET_TODOS, todos: items })
+
+        sendSocketAction({ type: ActionType.ORDER_TODOS, todos: items })
     }
 
     useEffect(() => {
+        const localShowDescription = window.localStorage.getItem('showDescription')
+        if (localShowDescription != null) {
+            setShowDescription(JSON.parse(localShowDescription) as boolean)
+        }
+    }, [])
+
+    function toggleDescription (): void {
+        setShowDescription(!showDescription)
+        window.localStorage.setItem('showDescription', JSON.stringify(!showDescription))
+    }
+
+    useEffect(() => {
+        if (users.length > MAX_AVATARS) {
+            dispatchUser({ type: ActionType.SET_USERS, users: users.slice(0, MAX_AVATARS) })
+            setAvatarSurplus(users.length - MAX_AVATARS)
+        }
+    }, [users])
+
+    useEffect(() => {
+        const onOpen = (): void => {
+            console.log('Connected to server')
+            sendSocketAction({ type: ActionType.NEW_USER })
+        }
         ws?.addEventListener('message', onMessage)
+        ws?.addEventListener('open', onOpen)
         void fetchTodos(listData.id)
-        return () => ws?.removeEventListener('message', onMessage)
-    }, [ws, onMessage, listData.id])
+        if (user != null) {
+            dispatchUser({ type: ActionType.SET_USERS, users: [{ name: user.name ?? '', email: user.email ?? '', picture: user.picture ?? null }] })
+        }
+        return () => {
+            ws?.removeEventListener('message', onMessage)
+            ws?.removeEventListener('open', onOpen)
+        }
+    }, [ws, onMessage, listData.id, user, sendSocketAction])
 
     return (
-        <Sheet variant='plain' sx={{ width: '100%', alignSelf: 'center' }} invertedColors>
-            <Stack direction='column' spacing={5}>
+        <Card invertedColors sx={{ margin: '2%', width: showDescription ? '98%' : '70%', alignSelf: 'center' }}>
+            <Stack direction='column' spacing={5} sx={{ maxWidth: 'fit-content' }} alignContent='center' alignItems='center'>
+                {users.length > 0 && (
+                    <AvatarGroup sx={{ alignSelf: 'center' }}>
+                        {users.map((user) => (
+                            <Tooltip key={user.email} title={user.name} variant='outlined' placement='top'>
+                                <Avatar size='lg' src={user.picture ?? undefined} alt={user.name} />
+                            </Tooltip>
+                        ))}
+                        {avatarSurplus > 0 && <Avatar size='lg'>+{avatarSurplus}</Avatar>}
+                    </AvatarGroup>
+                )}
                 <Button component='a' href='/' startDecorator={<ArrowBackIcon />}>Back to lists</Button>
+                <Typography level='h2'>{listData.name}</Typography>
+                <Stack direction='row' spacing={2} justifyContent='space-between' sx={{ width: '100%', 'button:nth-child(2)': { display: { xs: 'none', md: 'inline-flex' } } }}>
+                    <Button variant='solid' startDecorator={<AddIcon />} onClick={() => { dispatchTodo({ type: ActionType.ADD_TODO, todo: createNewTodo() }) }}>Add task</Button>
+                    <Button variant='solid' startDecorator={ showDescription ? <VisibilityOffIcon /> : <VisibilityIcon /> } onClick={() => { toggleDescription() }}>
+                        {showDescription ? 'Hide description' : 'Show description'}
+                    </Button>
+                    {todos.filter((todo) => todo.completed).length > 0 && (
+                        <Button variant='solid' color='danger' startDecorator={<DeleteIcon />} onClick={() => { void deleteDoneTodos() }}>Delete done tasks</Button>
+                    )}
+                </Stack>
                 <DragDropContext onDragEnd={handleOnDragEnd}>
                     <Table size='lg' sx={{
                         '.complete-true': { backgroundColor: (theme) => theme.palette.success.plainActiveBg, textDecoration: 'line-through' },
                         '& thead th:nth-child(1)': { width: '10%' },
                         '& thead th:nth-child(2)': { width: '30%' },
-                        '& thead th:nth-child(3)': { width: '40%', display: { xs: 'none', md: 'table-cell' } },
-                        '& tbody td:nth-child(3)': { display: { xs: 'none', md: 'table-cell' } },
-                        '& thead th:nth-child(4)': { width: '20%', alignContent: 'start', justifyContent: 'start' },
-                        overflowX: 'auto'
+                        '& thead th:nth-child(3)': { width: '40%', display: { xs: 'none', md: showDescription ? 'table-cell' : 'none' } },
+                        '& tbody td:nth-child(3)': { display: { xs: 'none', md: showDescription ? 'table-cell' : 'none' } },
+                        '& thead th:nth-child(4)': { width: '10%' },
+                        overflow: 'auto'
                     }}>
-                        <caption>{listData.name}</caption>
                         <thead>
                             <tr>
                                 <th><Checkbox className='align-middle' disabled/></th>
@@ -230,8 +332,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
                         </Droppable>
                     </Table>
                 </DragDropContext>
-                <IconButton variant='solid' onClick={() => { dispatch({ type: 'ADD_TODO', todo: createNewTodo() }) }}><AddIcon /></IconButton>
             </Stack>
-        </Sheet>
+        </Card>
     )
 }

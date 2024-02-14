@@ -1,17 +1,16 @@
 'use client'
 
-import { Button, FormControl, FormHelperText, FormLabel, IconButton, Input, Skeleton, Stack } from '@mui/joy'
+import { Button, Dropdown, FormControl, FormLabel, IconButton, Input, Menu, MenuButton, Skeleton, Stack } from '@mui/joy'
 import AddIcon from '@mui/icons-material/Add'
 import CheckIcon from '@mui/icons-material/Check'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import EmailIcon from '@mui/icons-material/Email'
 import CancelIcon from '@mui/icons-material/Cancel'
-import InfoOutlined from '@mui/icons-material/InfoOutlined'
 import { useEffect, useState } from 'react'
 import { type TodoList } from '@prisma/client'
 
-export default function ListOfLists (): React.JSX.Element {
+export default function ListOfLists ({ enableControls }: { enableControls: boolean }): React.JSX.Element {
     const [lists, setLists] = useState<TodoList[]>([])
     const [newTodoListName, setNewTodoListName] = useState<string>('')
     const [isAddingNewList, setIsAddingNewList] = useState<boolean>(false)
@@ -19,9 +18,6 @@ export default function ListOfLists (): React.JSX.Element {
     const [inviteEmail, setInviteEmail] = useState<string>('')
     const [invitingUser, setInvitingUser] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState<boolean>(true)
-    const [error, setError] = useState<string | null>(null)
-
-    const emailRegex = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
 
     async function getLists (): Promise<void> {
         const response = await fetch('/api/list')
@@ -92,49 +88,44 @@ export default function ListOfLists (): React.JSX.Element {
                     ? (
                         <form onSubmit={(e) => {
                             e.preventDefault()
-                            const passesRegex = emailRegex.test(inviteEmail)
-                            if (!passesRegex) {
-                                setError('Invalid email')
-                                return
-                            }
                             void upsertList(newTodoListName, list.id)
                         }} key={list.id}>
-                            <Stack direction='row' spacing={2} alignContent='center' justifyItems='center'>
-                                <FormControl>
-                                    <FormLabel>Invite user by email</FormLabel>
-                                    <Input error={error !== null} autoFocus required defaultValue={list.name} onChange={(e) => { setNewTodoListName(e.target.value) }} />
-                                    <FormHelperText>
-                                        <InfoOutlined />
-                                        {error}
-                                    </FormHelperText>
+                            <FormControl>
+                                <FormLabel>Edit list name</FormLabel>
+                                <Input autoFocus required defaultValue={list.name} onChange={(e) => { setNewTodoListName(e.target.value) }} />
+                                <Stack direction='row' spacing={2} alignContent='center' justifyItems='center'>
                                     <IconButton type='submit' variant='solid' color='success'><CheckIcon /></IconButton>
-                                </FormControl>
-                            </Stack>
+                                    <IconButton variant='solid' color='danger' onClick={() => { setEditingList(null) }}><CancelIcon /></IconButton>
+                                </Stack>
+                            </FormControl>
                         </form>
                     )
                     : (
                         <Stack direction='row' key={list.id} spacing={2} alignContent='center' justifyItems='center'>
                             <Button variant='soft' size='md' color='primary' component='a' href={`/lists/${list.id}`} sx={{ flexGrow: 1 }}>{list.name}</Button>
-                            <Stack direction='row' spacing={1}>
-                                <IconButton variant='outlined' color='neutral' onClick={() => { setEditingList(list); setNewTodoListName(list.name); setIsAddingNewList(false) }}><EditIcon /></IconButton>
-                                {invitingUser === list.id
-                                    ? (
-                                        <form onSubmit={(e) => {
-                                            e.preventDefault()
-                                            void inviteUser(inviteEmail, list.id)
-                                        }}>
-                                            <Stack direction='row' spacing={2} alignContent='center' justifyItems='center'>
-                                                <Input autoFocus required type='email' value={inviteEmail} onChange={(e) => { setInviteEmail(e.target.value) }} placeholder='Email' />
-                                                <IconButton type='submit' variant='solid' color='success'><CheckIcon /></IconButton>
-                                                <IconButton variant='solid' color='danger' onClick={() => { setInvitingUser(null) }}><CancelIcon /></IconButton>
-                                            </Stack>
-                                        </form>
-                                    )
-                                    : (
-                                        <IconButton variant='outlined' color='neutral' onClick={() => { setInvitingUser(list.id) }}><EmailIcon /></IconButton>
-                                    )}
-                                <IconButton variant='outlined' color='danger' onClick={ () => { void deleteList(list.id) }}><DeleteIcon /></IconButton>
-                            </Stack>
+                            {enableControls && (
+                                <Stack direction='row' spacing={1}>
+                                    <IconButton variant='outlined' color='neutral' onClick={() => { setEditingList(list); setNewTodoListName(list.name); setIsAddingNewList(false) }}><EditIcon /></IconButton>
+                                    <Dropdown>
+                                        <MenuButton onClick={() => { invitingUser === list.id ? setInvitingUser(null) : setInvitingUser(list.id) }} slots={{ root: IconButton }} slotProps={{ root: { variant: 'outlined', color: 'neutral' } }}>
+                                            <EmailIcon />
+                                        </MenuButton>
+                                        <Menu open={invitingUser === list.id}>
+                                            <form onSubmit={(e) => {
+                                                e.preventDefault()
+                                                void inviteUser(inviteEmail, list.id)
+                                            }}>
+                                                <Stack direction='row' spacing={2} alignContent='center' justifyItems='center' sx={{ margin: '1%' }}>
+                                                    <Input autoFocus required type='email' value={inviteEmail} onChange={(e) => { setInviteEmail(e.target.value) }} placeholder='Invite User by Email' />
+                                                    <IconButton type='submit' variant='solid' color='success'><CheckIcon /></IconButton>
+                                                    <IconButton variant='solid' color='danger' onClick={() => { setInvitingUser(null) }}><CancelIcon /></IconButton>
+                                                </Stack>
+                                            </form>
+                                        </Menu>
+                                    </Dropdown>
+                                    <IconButton variant='outlined' color='danger' onClick={ () => { void deleteList(list.id) }}><DeleteIcon /></IconButton>
+                                </Stack>
+                            )}
                         </Stack>
                     )
             ))}
