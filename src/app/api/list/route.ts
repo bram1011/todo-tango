@@ -46,7 +46,7 @@ export async function DELETE (req: NextRequest): Promise<Response> {
     if (todoList == null) {
         return NextResponse.json('List not found', { status: 404 })
     }
-    if (todoList.users.some((user) => user === session?.user.email)) {
+    if (todoList.users.some((email: string) => email === session?.user.email) as boolean) {
         const deletedRecord = await prisma.todoList.delete({ where: { id: todoListId } })
         return NextResponse.json(deletedRecord)
     }
