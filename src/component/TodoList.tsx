@@ -34,6 +34,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
     const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
     const [showDescription, setShowDescription] = useState<boolean>(true)
     const [avatarSurplus, setAvatarSurplus] = useState<number>(0)
+    const [makingNewTodo, setMakingNewTodo] = useState<boolean>(false)
     const ws = useWebSocket()
     const { user } = useUser()
     const MAX_AVATARS = 5
@@ -41,17 +42,18 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
     function todosReducer (state: Todo[], action: TodoAction): Todo[] {
         if (action.todo == null) return state
         switch (action.type) {
-            case 'ADD_TODO':
+            case ActionType.ADD_TODO:
                 if (action.tempId != null) {
                     return state.map(todo => todo.id === action.tempId ? action.todo : todo) as Todo[]
                 }
                 return [...state, action.todo]
-            case 'UPDATE_TODO':
+            case ActionType.EDIT_TODO:
+            case ActionType.UPDATE_TODO:
                 return state.map(todo => todo.id === action.todo?.id ? action.todo : todo)
-            case 'SET_TODOS':
+            case ActionType.SET_TODOS:
                 if (action.todos == null) return state
                 return action.todos
-            case 'DELETE_TODO':
+            case ActionType.DELETE_TODO:
                 return state.filter(todo => todo.id !== action.todo?.id)
             default:
                 return state
@@ -104,7 +106,12 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
         dispatchTodo({ type: ActionType.UPDATE_TODO, todo }) // Optimistic update
         if (editingTodo?.id === todo.id) {
             setEditingTodo(null)
-            sendSocketAction({ type: ActionType.EDIT_TODO, todo })
+            if (makingNewTodo) {
+                setMakingNewTodo(false)
+                sendSocketAction({ type: ActionType.ADD_TODO, todo, tempId: todo.id })
+            } else {
+                sendSocketAction({ type: ActionType.EDIT_TODO, todo })
+            }
         } else {
             sendSocketAction({ type: ActionType.EDIT_TODO, todo })
         }
@@ -135,20 +142,21 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
     }
 
     function createNewTodo (): Todo {
-        let order = 0
-        if (todos.length > 0) {
-            const orders: number[] = todos.map((todo) => todo.order)
-            order = Math.max(...orders) + 1
-        }
         const newTodo: Todo = {
             id: uuidv4(),
             name: '',
             description: '',
             todoListId: listData.id,
             completed: false,
-            order
+            order: 0
+        }
+        todos.splice(0, 0, newTodo)
+        for (let i = 0; i < todos.length; i++) {
+            todos[i].order = i
         }
         setEditingTodo(newTodo)
+        dispatchTodo({ type: ActionType.SET_TODOS, todos })
+        setMakingNewTodo(true)
         return newTodo
     }
 
@@ -233,7 +241,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
                 <Button component='a' href='/' startDecorator={<ArrowBackIcon />}>Back to lists</Button>
                 <Typography level='h2'>{listData.name}</Typography>
                 <Stack direction='row' spacing={2} justifyContent='space-between' sx={{ width: '100%', 'button:nth-child(2)': { display: { xs: 'none', md: 'inline-flex' } } }}>
-                    <Button variant='solid' startDecorator={<AddIcon />} onClick={() => { dispatchTodo({ type: ActionType.ADD_TODO, todo: createNewTodo() }) }}>Add task</Button>
+                    <Button variant='solid' startDecorator={<AddIcon />} onClick={() => { createNewTodo() }}>Add task</Button>
                     <Button variant='solid' startDecorator={ showDescription ? <VisibilityOffIcon /> : <VisibilityIcon /> } onClick={() => { toggleDescription() }}>
                         {showDescription ? 'Hide description' : 'Show description'}
                     </Button>
