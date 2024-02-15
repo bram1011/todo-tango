@@ -200,8 +200,12 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
             console.log('Connected to server')
             sendSocketAction({ type: ActionType.NEW_USER })
         }
+        const onClose = (closeEvent: CloseEvent): void => {
+            console.log('Disconnected from server: ', closeEvent.reason)
+        }
         ws?.addEventListener('message', onMessage)
         ws?.addEventListener('open', onOpen)
+        ws?.addEventListener('close', onClose)
         void fetchTodos(listData.id)
         if (user != null) {
             dispatchUser({ type: ActionType.SET_USERS, users: [{ name: user.name ?? '', email: user.email ?? '', picture: user.picture ?? null }] })
@@ -209,6 +213,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
         return () => {
             ws?.removeEventListener('message', onMessage)
             ws?.removeEventListener('open', onOpen)
+            ws?.removeEventListener('close', onClose)
         }
     }, [ws, onMessage, listData.id, user, sendSocketAction])
 
