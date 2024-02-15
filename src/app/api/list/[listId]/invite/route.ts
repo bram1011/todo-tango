@@ -17,7 +17,7 @@ export async function POST (req: NextRequest, { params }: { params: { listId: st
     })
     console.log('Message sent: %s', sentMessage.messageId)
     const list = await prisma.todoList.findUnique({ where: { id: params.listId } })
-    if (list !== null && list.users.includes(email) as boolean) {
+    if (list !== null && !list.users.includes(email) as boolean) {
         list.users.push(email)
         await prisma.todoList.update({
             where: { id: params.listId },
