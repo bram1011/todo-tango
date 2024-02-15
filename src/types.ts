@@ -1,4 +1,5 @@
 import { type Todo, type TodoList } from '@prisma/client'
+import { type WebSocketServer } from 'ws'
 
 export interface TodoListWithTodos extends TodoList {
     todos: Todo[]
@@ -14,6 +15,14 @@ export interface ActiveUser {
     email: string
     name: string
     picture: string | null
+}
+
+export interface SocketClient extends WebSocket {
+    isAlive: boolean
+}
+
+export interface SocketServer extends WebSocketServer {
+    isAlive: boolean
 }
 
 export enum ActionType {

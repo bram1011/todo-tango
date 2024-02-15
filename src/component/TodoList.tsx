@@ -99,11 +99,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
                 dispatchTodo(message)
             })
         }
-        setTimeout(() => {
-            // Keep socket connection alive
-            sendSocketAction({ type: ActionType.NEW_USER })
-        }, 500)
-    }, [sendSocketAction])
+    }, [])
 
     async function updateTodo (todo: Todo): Promise<void> {
         dispatchTodo({ type: ActionType.UPDATE_TODO, todo }) // Optimistic update
@@ -194,6 +190,16 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
         }
         setWs(new WebSocket(process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:3000/api/socket'))
     }, [])
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (ws?.readyState === ws?.OPEN) {
+                // Keep socket alive
+                sendSocketAction({ type: ActionType.NEW_USER })
+            }
+        }, 500)
+        return () => { clearInterval(interval) }
+    }, [sendSocketAction, ws])
 
     function toggleDescription (): void {
         setShowDescription(!showDescription)
