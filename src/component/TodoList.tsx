@@ -34,7 +34,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
     const [showDescription, setShowDescription] = useState<boolean>(true)
     const [avatarSurplus, setAvatarSurplus] = useState<number>(0)
     const [makingNewTodo, setMakingNewTodo] = useState<boolean>(false)
-    const [ws, setWs] = useState<WebSocket>(new WebSocket(process.env.NEXT_PUBLIC_WS_URL ?? ''))
+    const [ws, setWs] = useState<WebSocket | null>(null)
     const { user } = useUser()
     const MAX_AVATARS = 5
 
@@ -192,6 +192,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
         if (localShowDescription != null) {
             setShowDescription(JSON.parse(localShowDescription) as boolean)
         }
+        setWs(new WebSocket(process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:3000/api/socket'))
     }, [])
 
     function toggleDescription (): void {
@@ -213,10 +214,6 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
         }
         ws?.addEventListener('message', onMessage)
         ws?.addEventListener('open', onOpen)
-        ws.onclose = (c: CloseEvent) => {
-            console.log('Disconnected from server: ', c.reason)
-            setWs(new WebSocket(process.env.NEXT_PUBLIC_WS_URL ?? ''))
-        }
         void fetchTodos(listData.id)
         if (user != null) {
             dispatchUser({ type: ActionType.SET_USERS, users: [{ name: user.name ?? '', email: user.email ?? '', picture: user.picture ?? null }] })
