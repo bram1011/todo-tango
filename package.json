@@ -36,7 +36,8 @@
     "typeorm": "^0.3.19",
     "typeorm-naming-strategies": "^4.1.0",
     "uuid": "^9.0.1",
-    "ws": "^8.16.0"
+    "ws": "^8.16.0",
+    "webpack-filter-warnings-plugin": "^1.2.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.6",
@@ -57,7 +58,6 @@
     "eslint-plugin-react": "^7.33.2",
     "postcss": "^8",
     "prisma": "^5.8.1",
-    "typescript": "^5.3.3",
-    "webpack-filter-warnings-plugin": "^1.2.1"
+    "typescript": "^5.3.3"
   }
 }
