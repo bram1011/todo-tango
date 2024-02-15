@@ -23,7 +23,6 @@ import VisibilityIcon from '@mui/icons-material/Visibility'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import { type Todo } from '@prisma/client'
 import { type SocketAction, type ActiveUser, type TodoAction, type TodoListWithTodos, ActionType } from '@/types'
-import { useWebSocket } from 'next-ws/client'
 import { v4 as uuidv4 } from 'uuid'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { useUser } from '@auth0/nextjs-auth0/client'
@@ -35,7 +34,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
     const [showDescription, setShowDescription] = useState<boolean>(true)
     const [avatarSurplus, setAvatarSurplus] = useState<number>(0)
     const [makingNewTodo, setMakingNewTodo] = useState<boolean>(false)
-    const ws = useWebSocket()
+    const [ws, setWs] = useState<WebSocket>(new WebSocket(process.env.NEXT_PUBLIC_WS_URL ?? ''))
     const { user } = useUser()
     const MAX_AVATARS = 5
 
@@ -100,7 +99,11 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
                 dispatchTodo(message)
             })
         }
-    }, [])
+        setTimeout(() => {
+            // Keep socket connection alive
+            sendSocketAction({ type: ActionType.NEW_USER })
+        }, 500)
+    }, [sendSocketAction])
 
     async function updateTodo (todo: Todo): Promise<void> {
         dispatchTodo({ type: ActionType.UPDATE_TODO, todo }) // Optimistic update
@@ -208,12 +211,12 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
             console.log('Connected to server')
             sendSocketAction({ type: ActionType.NEW_USER })
         }
-        const onClose = (closeEvent: CloseEvent): void => {
-            console.log('Disconnected from server: ', closeEvent.reason)
-        }
         ws?.addEventListener('message', onMessage)
         ws?.addEventListener('open', onOpen)
-        ws?.addEventListener('close', onClose)
+        ws.onclose = (c: CloseEvent) => {
+            console.log('Disconnected from server: ', c.reason)
+            setWs(new WebSocket(process.env.NEXT_PUBLIC_WS_URL ?? ''))
+        }
         void fetchTodos(listData.id)
         if (user != null) {
             dispatchUser({ type: ActionType.SET_USERS, users: [{ name: user.name ?? '', email: user.email ?? '', picture: user.picture ?? null }] })
@@ -221,7 +224,6 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
         return () => {
             ws?.removeEventListener('message', onMessage)
             ws?.removeEventListener('open', onOpen)
-            ws?.removeEventListener('close', onClose)
         }
     }, [ws, onMessage, listData.id, user, sendSocketAction])
 

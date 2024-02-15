@@ -12,7 +12,6 @@ export function SOCKET (
     client.on('message', (message) => {
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
         const socketAction = JSON.parse(message.toString()) as SocketAction
-        console.log(socketAction)
         if (socketAction.type == null) {
             client.send('Invalid action')
             return
@@ -62,13 +61,13 @@ export function SOCKET (
 
 function notifyClients (server: WebSocketServer, message: string): void {
     server.clients.forEach((client) => {
-        console.log(message)
         client.send(message)
     })
 }
 
 async function updateOrder (todos: Todo[]): Promise<void> {
     for (const todo of todos) {
+        console.log('Ordering todo ', todo.id)
         await prisma.todo.update({
             where: { id: todo.id },
             data: { order: todo.order }
@@ -77,6 +76,7 @@ async function updateOrder (todos: Todo[]): Promise<void> {
 }
 
 async function editTodo (todo: Todo): Promise<Todo> {
+    console.log('Editing todo ', todo.id)
     const todoRecord = await prisma.todo.update({
         where: { id: todo.id },
         data: {
@@ -93,6 +93,7 @@ async function editTodo (todo: Todo): Promise<Todo> {
 }
 
 async function deleteTodo (todoId: string): Promise<Todo> {
+    console.log('Deleting todo ', todoId)
     const todoRecord = await prisma.todo.delete({
         where: { id: todoId }
     })
@@ -111,5 +112,6 @@ async function addTodo (todo: Todo): Promise<Todo> {
             }
         }
     })
+    console.log('Added todo ', todoRecord.id)
     return todoRecord
 }

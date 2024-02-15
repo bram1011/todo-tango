@@ -4,7 +4,6 @@ import TodoList from '@/component/TodoList'
 import { type TodoListWithTodos } from '@/types'
 import { Skeleton } from '@mui/joy'
 import { useEffect, useState } from 'react'
-import { WebSocketProvider } from 'next-ws/client'
 
 export default function ListPage ({ params }: { params: { listId: string } }): React.JSX.Element {
     const [loading, setLoading] = useState(true)
@@ -27,10 +26,8 @@ export default function ListPage ({ params }: { params: { listId: string } }): R
     }, [params.listId])
 
     return (
-        <WebSocketProvider url={process.env.NEXT_PUBLIC_WS_URL ?? ''}>
-            <Skeleton variant='rectangular' loading={loading} width='90%' height='20%' sx={{ alignSelf: 'center' }}>
-                {(listData != null) && <TodoList listData={listData} />}
-            </Skeleton>
-        </WebSocketProvider>
+        <Skeleton variant='rectangular' loading={loading} width='90%' height='20%' sx={{ alignSelf: 'center' }}>
+            {(listData != null) && <TodoList listData={listData} />}
+        </Skeleton>
     )
 }
