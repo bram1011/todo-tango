@@ -3,12 +3,12 @@
 import { Button, Dropdown, FormControl, FormLabel, IconButton, Input, Menu, MenuButton, Skeleton, Stack } from '@mui/joy'
 import AddIcon from '@mui/icons-material/Add'
 import CheckIcon from '@mui/icons-material/Check'
-import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import EmailIcon from '@mui/icons-material/Email'
 import CancelIcon from '@mui/icons-material/Cancel'
 import { useEffect, useState } from 'react'
 import { type TodoList } from '@prisma/client'
+import DeleteConfirmation from './DeleteConfirmation'
 
 export default function ListOfLists ({ enableControls }: { enableControls: boolean }): React.JSX.Element {
     const [lists, setLists] = useState<TodoList[]>([])
@@ -68,7 +68,9 @@ export default function ListOfLists ({ enableControls }: { enableControls: boole
 
     return (
         <Stack alignSelf='center' marginX={8} maxHeight='full' minWidth={0.5} spacing={4} justifyItems='stretch' alignContent='start' justifySelf='center' direction='column'>
-            <Button sx={{ justifySelf: 'center', maxWidth: 'fit-content', alignSelf: 'center' }} variant='plain' size='lg' color='success' startDecorator={<AddIcon />} onClick={() => { setIsAddingNewList(true) }}>Add a new List</Button>
+            <Button sx={{ justifySelf: 'center', maxWidth: 'fit-content', alignSelf: 'center' }} variant='plain' size='lg' color='success' startDecorator={<AddIcon />} onClick={() => { setIsAddingNewList(true) }}>
+                Add a new List
+            </Button>
             {isAddingNewList && (
                 <form onSubmit={(e) => {
                     e.preventDefault()
@@ -123,7 +125,7 @@ export default function ListOfLists ({ enableControls }: { enableControls: boole
                                             </form>
                                         </Menu>
                                     </Dropdown>
-                                    <IconButton variant='outlined' color='danger' onClick={ () => { void deleteList(list.id) }}><DeleteIcon /></IconButton>
+                                    <DeleteConfirmation itemName={list.name} onDelete={ () => { void deleteList(list.id) } } />
                                 </Stack>
                             )}
                         </Stack>

@@ -250,9 +250,12 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
                     <Button variant='solid' startDecorator={ showDescription ? <VisibilityOffIcon /> : <VisibilityIcon /> } onClick={() => { toggleDescription() }}>
                         {showDescription ? 'Hide description' : 'Show description'}
                     </Button>
-                    {todos.filter((todo) => todo.completed).length > 0 && (
-                        <Button variant='solid' color='danger' startDecorator={<DeleteIcon />} onClick={() => { void deleteDoneTodos() }}>Delete done tasks</Button>
-                    )}
+                    {todos.filter((todo) => todo.completed).length > 0
+                        ? (
+                            <Button variant='solid' color='danger' startDecorator={<DeleteIcon />} onClick={() => { void deleteDoneTodos() }}>Delete done tasks</Button>
+                        )
+                        : <div />
+                    }
                 </Stack>
                 <DragDropContext onDragEnd={handleOnDragEnd}>
                     <Table size='lg' sx={{
@@ -283,7 +286,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
                                                     <Draggable key={todo.id} draggableId={todo.id} index={index} isDragDisabled={editingTodo !== null}>
                                                         {(provided: any) => (
                                                             <tr ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className={`complete-${todo.completed}`}>
-                                                                <td><Checkbox className='align-middle' defaultChecked={todo.completed} onChange={
+                                                                <td><Checkbox className='align-middle' checked={todo.completed} onChange={
                                                                     (e) => {
                                                                         todo.completed = e.target.checked
                                                                         void updateTodo(todo)
@@ -305,7 +308,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
                                                                             />
                                                                         )
                                                                         : (
-                                                                            <Typography level='title-md'>{todo.name}</Typography>
+                                                                            <Typography level={ showDescription ? 'title-md' : 'title-lg' }>{todo.name}</Typography>
                                                                         )}
                                                                 </td>
                                                                 <td>

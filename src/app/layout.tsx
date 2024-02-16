@@ -15,6 +15,7 @@ import Image from 'next/image'
 import logo from './todo-tango.png'
 import theme from '@/util/theme'
 import favicon from '@/favicon.ico'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
     title: 'Todo Tango'
@@ -42,10 +43,12 @@ export default function RootLayout ({
                                                 <Sidebar />
                                                 <DarkModeToggle />
                                             </Stack>
-                                            <Stack direction='row' alignItems='center' spacing={2} display={{ sm: 'none', md: 'flex', xs: 'none' }}>
-                                                <Image src={logo} alt='Todo Tango' width={70} />
-                                                <Typography level='h1'>Todo Tango</Typography>
-                                            </Stack>
+                                            <Link href='/'>
+                                                <Stack direction='row' alignItems='center' spacing={2} display={{ sm: 'none', md: 'flex', xs: 'none' }}>
+                                                    <Image src={logo} alt='Todo Tango' width={70} />
+                                                    <Typography level='h1'>Todo Tango</Typography>
+                                                </Stack>
+                                            </Link>
                                             <LogOutButton />
                                         </Stack>
                                     </Sheet>
