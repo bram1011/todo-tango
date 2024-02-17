@@ -231,7 +231,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
     }, [ws, onMessage, listData.id, user, sendSocketAction])
 
     return (
-        <Card invertedColors sx={{ margin: '2%', width: showDescription ? '98%' : '70%', alignSelf: 'center' }}>
+        <Card invertedColors sx={{ margin: '0 2% 20% 2%', paddingBottom: '2%', width: showDescription ? '98%' : '70%', alignSelf: 'center' }}>
             <Stack direction='column' spacing={5} sx={{ maxWidth: 'fit-content' }} alignContent='center' alignItems='center'>
                 {users.length > 0 && (
                     <AvatarGroup sx={{ alignSelf: 'center' }}>
@@ -265,7 +265,9 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
                         '& thead th:nth-child(3)': { width: '40%', display: { xs: 'none', md: showDescription ? 'table-cell' : 'none' } },
                         '& tbody td:nth-child(3)': { display: { xs: 'none', md: showDescription ? 'table-cell' : 'none' } },
                         '& thead th:nth-child(4)': { width: '10%' },
-                        overflow: 'auto'
+                        overflow: 'auto',
+                        paddingBottom: '2%',
+                        marginBottom: '2%'
                     }}>
                         <thead>
                             <tr>
@@ -278,7 +280,6 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
                         <Droppable droppableId='todos'>
                             {(provided: any) => (
                                 <tbody {...provided.droppableProps} ref={provided.innerRef}>
-                                    <tr>{provided.placeholder}</tr>
                                     {
                                         todos.length > 0
                                             ? (
@@ -348,6 +349,7 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
                                             )
                                             : (<tr><td colSpan={3}><Typography level='body-md'>No tasks</Typography></td></tr>)
                                     }
+                                    <tr>{provided.placeholder}</tr>
                                 </tbody>
                             )}
                         </Droppable>

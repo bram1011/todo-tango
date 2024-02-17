@@ -5,7 +5,7 @@ import './globals.css'
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v13-appRouter'
 import 'reflect-metadata'
 import { CssVarsProvider } from '@mui/joy/styles'
-import { Sheet, Stack, Typography } from '@mui/joy'
+import { Box, Sheet, Stack, Typography } from '@mui/joy'
 import React from 'react'
 import { UserProvider } from '@auth0/nextjs-auth0/client'
 import LogOutButton from '@/component/LogOutButton'
@@ -52,7 +52,9 @@ export default function RootLayout ({
                                             <LogOutButton />
                                         </Stack>
                                     </Sheet>
-                                    {children}
+                                    <Box sx={{ marginBottom: '5%', display: 'flex', width: '100%', height: '100%', justifyContent: 'flex-start', flexDirection: 'column' }}>
+                                        {children}
+                                    </Box>
                                 </Stack>
                             </Sheet>
                         </UserProvider>
