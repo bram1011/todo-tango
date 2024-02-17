@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 require('next-ws/server').verifyPatch();
+
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+});
 const FilterWarningsPlugin = require('webpack-filter-warnings-plugin');
 const nextConfig = {
     reactStrictMode: true,
@@ -58,6 +64,6 @@ const nextConfig = {
         );
         return config;
     }
-}
+};
 
-module.exports = nextConfig
+module.exports = withPWA(nextConfig);
