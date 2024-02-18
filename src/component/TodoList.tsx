@@ -193,6 +193,9 @@ export default function TodoList ({ listData }: { listData: TodoListWithTodos })
 
     useEffect(() => {
         const interval = setInterval(() => {
+            if (ws == null || ws.readyState === ws.CLOSED) {
+                setWs(new WebSocket(process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:3000/api/socket'))
+            }
             if (ws?.readyState === ws?.OPEN) {
                 // Keep socket alive
                 sendSocketAction({ type: ActionType.NEW_USER })
